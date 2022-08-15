@@ -11,6 +11,12 @@ pub struct CasbinAuth {
     enforcer: Arc<RwLock<Enforcer>>,
 }
 
+impl CasbinAuth {
+    pub fn new(enforcer: Arc<RwLock<Enforcer>>) -> Self {
+        Self { enforcer }
+    }
+}
+
 #[derive(Clone)]
 pub struct CasbinAuthClaims {
     pub subject: String,
