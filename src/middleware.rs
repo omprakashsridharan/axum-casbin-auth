@@ -7,6 +7,7 @@ use hyper::{Body, Request};
 use tokio::sync::RwLock;
 use tower_http::auth::AsyncAuthorizeRequest;
 
+#[derive(Clone)]
 pub struct CasbinAuth {
     enforcer: Arc<RwLock<Enforcer>>,
 }
