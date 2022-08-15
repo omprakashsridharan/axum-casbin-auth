@@ -1,0 +1,31 @@
+[package]
+name = "tower-casbin-auth"
+version = "0.1.0"
+edition = "2021"
+authors = ["Omprakash Sridharan <omprakashsridharan@outlook.com>"]
+license = "Apache-2.0"
+description = "Casbin tower access control middleware"
+
+[lib]
+name = "tower_casbin_auth"
+path = "src/lib.rs"
+
+[dependencies]
+casbin = { version = "2.0.9", features=["cached"] }
+tokio = "1.20.1"
+tower = "0.4.13"
+futures = "0.3"
+http = "0.2.8"
+tower-http = { version ="0.3.4", features=["auth"] }
+hyper = "0.14.20"
+
+[dev-dependencies]
+tokio = { version = "1.17.0", features = [ "full" ] }
+
+[profile.release]
+codegen-units = 1
+lto           = true
+opt-level     = 3
+
+[profile.dev]
+split-debuginfo = "unpacked"
