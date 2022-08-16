@@ -84,15 +84,9 @@ where
                 .extensions()
                 .get::<CasbinAuthClaims>()
                 .map(|x| x.to_owned());
-            // let option_vals: Option<CasbinAuthClaims> = Some(CasbinAuthClaims {
-            //     subject: String::from("omprakash"),
-            // });
-            println!("{:?}", option_vals);
-            println!("{} {}", path, method);
             if let Some(vals) = option_vals {
                 match lock.enforce_mut(vec![vals.subject.clone(), path, method]) {
                     Ok(true) => {
-                        println!("TRUE");
                         drop(lock);
                         request.extensions_mut().insert(vals.subject);
                         let response: Response<BoxBody> =
@@ -100,12 +94,10 @@ where
                         Ok(response)
                     }
                     Ok(false) => {
-                        println!("FALSE");
                         drop(lock);
                         Ok(unauthorized_response)
                     }
-                    Err(e) => {
-                        println!("{}", e);
+                    Err(_) => {
                         drop(lock);
                         Ok(unauthorized_response)
                     }
