@@ -1,12 +1,13 @@
 [package]
 name = "axum-casbin-auth"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Omprakash Sridharan <omprakashsridharan@outlook.com>"]
 license = "Apache-2.0"
 description = "Casbin axum access control middleware"
 repository = "https://github.com/omprakashsridharan/axum-casbin-auth"
 include = ["/src","LICENSE"]
+readme = "README.md"
 
 [lib]
 name = "axum_casbin_auth"
@@ -17,7 +18,6 @@ casbin = { version = "2.0.9", features=["cached"] }
 tokio = "1.20.1"
 tower = "0.4.13"
 futures = "0.3"
-hyper = "0.14.20"
 http-body = "0.4.5"
 axum = "0.5.15"
 pin-project-lite = "0.2.9"
