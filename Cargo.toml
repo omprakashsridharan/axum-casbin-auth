@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Omprakash Sridharan <omprakashsridharan@outlook.com>"]
 license = "Apache-2.0"
-description = "Casbin tower access control middleware"
-repository = "https://github.com/omprakashsridharan/tower-casbin-auth"
+description = "Casbin axum access control middleware"
+repository = "https://github.com/omprakashsridharan/axum-casbin-auth"
 include = ["/src","LICENSE"]
 
 [lib]
