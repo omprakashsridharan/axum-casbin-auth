@@ -1,6 +1,6 @@
 [package]
-name = "tower-casbin-auth"
-version = "0.1.2"
+name = "axum-casbin-auth"
+version = "0.1.0"
 edition = "2021"
 authors = ["Omprakash Sridharan <omprakashsridharan@outlook.com>"]
 license = "Apache-2.0"
@@ -9,7 +9,7 @@ repository = "https://github.com/omprakashsridharan/tower-casbin-auth"
 include = ["/src","LICENSE"]
 
 [lib]
-name = "tower_casbin_auth"
+name = "axum_casbin_auth"
 path = "src/lib.rs"
 
 [dependencies]
@@ -17,9 +17,12 @@ casbin = { version = "2.0.9", features=["cached"] }
 tokio = "1.20.1"
 tower = "0.4.13"
 futures = "0.3"
-http = "0.2.8"
-tower-http = { version ="0.3.4", features=["auth"] }
 hyper = "0.14.20"
+http-body = "0.4.5"
+axum = "0.5.15"
+pin-project-lite = "0.2.9"
+serde = "1.0.143"
+serde_json = "1.0.83"
 
 [dev-dependencies]
 tokio = { version = "1.17.0", features = [ "full" ] }

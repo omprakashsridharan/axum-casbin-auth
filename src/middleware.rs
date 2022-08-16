@@ -1,74 +1,117 @@
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 
+use axum::{
+    body::{self, boxed, Body, BoxBody},
+    http::{Request, StatusCode},
+    response::Response,
+};
 use casbin::{CoreApi, Enforcer};
 use futures::future::BoxFuture;
-use http::{Response, StatusCode};
-use hyper::{Body, Request};
+use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use tower_http::auth::AsyncAuthorizeRequest;
+use tower::{Layer, Service};
 
 #[derive(Clone)]
-pub struct CasbinAuth {
+pub struct CasbinAuthLayer {
     enforcer: Arc<RwLock<Enforcer>>,
 }
 
-impl CasbinAuth {
+impl CasbinAuthLayer {
     pub fn new(enforcer: Arc<RwLock<Enforcer>>) -> Self {
         Self { enforcer }
     }
 }
 
 #[derive(Clone)]
+pub struct CasbinAuthMiddleware<S> {
+    inner: S,
+    enforcer: Arc<RwLock<Enforcer>>,
+}
+
+impl<S> Layer<S> for CasbinAuthLayer {
+    type Service = CasbinAuthMiddleware<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        CasbinAuthMiddleware {
+            inner,
+            enforcer: self.enforcer.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CasbinAuthClaims {
     pub subject: String,
 }
 
-impl<B> AsyncAuthorizeRequest<B> for CasbinAuth
+impl CasbinAuthClaims {
+    pub fn new(subject: String) -> Self {
+        Self { subject }
+    }
+}
+
+impl<S> Service<Request<Body>> for CasbinAuthMiddleware<S>
 where
-    B: Send + 'static,
+    S: Service<Request<Body>, Response = Response, Error = Infallible> + Clone + Send + 'static,
+    S::Future: Send + 'static,
 {
-    type RequestBody = B;
+    type Response = Response<BoxBody>;
 
-    type ResponseBody = Body;
+    type Error = Infallible;
 
-    type Future = BoxFuture<'static, Result<Request<B>, Response<Self::ResponseBody>>>;
+    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
-    fn authorize(&mut self, mut request: Request<B>) -> Self::Future {
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, mut request: Request<Body>) -> Self::Future {
         let cloned_enforcer = self.enforcer.clone();
+        let not_ready_inner = self.inner.clone();
+        let mut ready_inner = std::mem::replace(&mut self.inner, not_ready_inner);
         Box::pin(async move {
-            let path = request.uri();
-            let method = request.method().to_string().to_owned();
+            let unauthorized_response: Response<BoxBody> = Response::builder()
+                .status(StatusCode::FORBIDDEN)
+                .body(boxed(Body::empty()))
+                .unwrap();
+            let path = request.uri().clone().to_string();
+            let method = request.method().clone().to_string();
             let mut lock = cloned_enforcer.write().await;
             let option_vals = request
                 .extensions()
                 .get::<CasbinAuthClaims>()
                 .map(|x| x.to_owned());
-            let unauthorized_response = Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body(Body::empty())
-                .unwrap();
+            // let option_vals: Option<CasbinAuthClaims> = Some(CasbinAuthClaims {
+            //     subject: String::from("omprakash"),
+            // });
+            println!("{:?}", option_vals);
+            println!("{} {}", path, method);
             if let Some(vals) = option_vals {
-                match lock.enforce_mut(vec![
-                    vals.subject.clone(),
-                    path.to_string(),
-                    method.to_string(),
-                ]) {
+                match lock.enforce_mut(vec![vals.subject.clone(), path, method]) {
                     Ok(true) => {
+                        println!("TRUE");
                         drop(lock);
                         request.extensions_mut().insert(vals.subject);
-                        Ok(request)
+                        let response: Response<BoxBody> =
+                            ready_inner.call(request).await?.map(body::boxed);
+                        Ok(response)
                     }
                     Ok(false) => {
+                        println!("FALSE");
                         drop(lock);
-                        Err(unauthorized_response)
+                        Ok(unauthorized_response)
                     }
-                    Err(_) => {
+                    Err(e) => {
+                        println!("{}", e);
                         drop(lock);
-                        Err(unauthorized_response)
+                        Ok(unauthorized_response)
                     }
                 }
             } else {
-                Err(unauthorized_response)
+                Ok(unauthorized_response)
             }
         })
     }

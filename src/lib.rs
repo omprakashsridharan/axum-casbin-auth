@@ -1,3 +1,3 @@
 pub use casbin;
 pub mod middleware;
-pub use middleware::{CasbinAuth, CasbinAuthClaims};
+pub use middleware::{CasbinAuthClaims, CasbinAuthLayer, CasbinAuthMiddleware};
