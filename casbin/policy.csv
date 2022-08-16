@@ -1,0 +1,2 @@
+p, admin@test.com, *, POST
+p, user@test.com, /, GET
