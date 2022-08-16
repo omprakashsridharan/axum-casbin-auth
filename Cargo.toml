@@ -6,7 +6,7 @@ authors = ["Omprakash Sridharan <omprakashsridharan@outlook.com>"]
 license = "Apache-2.0"
 description = "Casbin axum access control middleware"
 repository = "https://github.com/omprakashsridharan/axum-casbin-auth"
-include = ["/src","LICENSE"]
+include = ["/src","LICENSE","/examples/*","/casbin/*"]
 readme = "README.md"
 
 [lib]
