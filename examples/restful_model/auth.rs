@@ -1,6 +1,9 @@
-use axum::extract::{FromRequest, RequestParts, TypedHeader};
+use axum::extract::{FromRequestParts, TypedHeader};
+use axum::RequestPartsExt;
 
 use axum::headers::{authorization::Bearer, Authorization};
+use axum::http::request::Parts;
+use axum::http::Extensions;
 use axum::response::IntoResponse;
 use axum::{http::StatusCode, Json};
 use axum_casbin_auth::CasbinAuthClaims;
@@ -53,28 +56,25 @@ impl Claims {
 }
 
 #[axum::async_trait]
-impl<B> FromRequest<B> for Claims
+impl<B> FromRequestParts<B> for Claims
 where
-    B: Send,
+    B: Send + Sync,
 {
     type Rejection = AuthError;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(bearer)) =
-            TypedHeader::<Authorization<Bearer>>::from_request(req)
-                .await
-                .map_err(|e| {
-                    println!("{:?}", e);
-                    AuthError::InvalidToken
-                })?;
+    async fn from_request_parts(parts: &mut Parts, _state: &B) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) = parts
+            .extract::<TypedHeader<Authorization<Bearer>>>()
+            .await
+            .map_err(|_| AuthError::InvalidToken)?;
 
         let token_data = verify(bearer.token()).map_err(|e| {
             println!("{:?}", e);
             AuthError::InvalidToken
         })?;
-        req.extensions_mut().insert(token_data.clone());
-        req.extensions_mut()
-            .insert(CasbinAuthClaims::new(token_data.clone().subject));
+        let mut claims_extension = Extensions::new();
+        claims_extension.insert(CasbinAuthClaims::new(token_data.clone().subject));
+        let _ = parts.extensions.extend(claims_extension);
         Ok(token_data)
     }
 }
