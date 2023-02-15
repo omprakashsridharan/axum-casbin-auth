@@ -26,7 +26,10 @@ use std::str::FromStr;
 
 use crate::constants::JWT_SECRET;
 use async_trait::async_trait;
-use axum::extract::{FromRequest, RequestParts, TypedHeader};
+use axum::extract::{FromRequest, TypedHeader};
+use axum::RequestPartsExt;
+use axum::http::request::Parts;
+use axum::http::Extensions;
 use axum::headers::{authorization::Bearer, Authorization};
 use axum::response::IntoResponse;
 use axum::{http::StatusCode, Json};
@@ -85,24 +88,26 @@ pub enum AuthError {
     InvalidToken,
 }
 
-#[async_trait]
-impl<B> FromRequest<B> for Claims
+#[axum::async_trait]
+impl<B> FromRequestParts<B> for Claims
 where
-    B: Send,
+    B: Send + Sync,
 {
     type Rejection = AuthError;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let TypedHeader(Authorization(bearer)) =
-            TypedHeader::<Authorization<Bearer>>::from_request(req)
-                .await
-                .map_err(|_| AuthError::InvalidToken)?;
-        // Decode the user data
-        let token_data = verify(bearer.token()).map_err(|_| AuthError::InvalidToken)?;
-        req.extensions_mut().insert(token_data.clone());
-        // THIS IS WHERE WE SATISFY THE CONTRACT FOR CASBIN_AUTH_MIDDLEWARE
-        req.extensions_mut()
-            .insert(CasbinAuthClaims::new(token_data.clone().subject));
+    async fn from_request_parts(parts: &mut Parts, _state: &B) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) = parts
+            .extract::<TypedHeader<Authorization<Bearer>>>()
+            .await
+            .map_err(|_| AuthError::InvalidToken)?;
+
+        let token_data = verify(bearer.token()).map_err(|e| {
+            println!("{:?}", e);
+            AuthError::InvalidToken
+        })?;
+        let mut claims_extension = Extensions::new();
+        claims_extension.insert(CasbinAuthClaims::new(token_data.clone().subject));
+        let _ = parts.extensions.extend(claims_extension);
         Ok(token_data)
     }
 }

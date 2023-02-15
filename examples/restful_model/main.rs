@@ -35,10 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let casbin_auth_enforcer = Arc::new(RwLock::new(e));
 
     let app = Router::new()
-        .route("/", get(root))
         .route("/protected", post(protected))
         .layer(CasbinAuthLayer::new(casbin_auth_enforcer))
-        .layer(from_extractor::<Claims>());
+        .layer(from_extractor::<Claims>())
+        .route("/", get(root));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     axum::Server::bind(&addr)

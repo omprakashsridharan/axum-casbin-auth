@@ -6,7 +6,7 @@ authors = ["Omprakash Sridharan <omprakashsridharan@outlook.com>"]
 license = "Apache-2.0"
 description = "Casbin axum access control middleware"
 repository = "https://github.com/omprakashsridharan/axum-casbin-auth"
-include = ["/src","LICENSE","/examples/*","/casbin/*"]
+include = ["/src", "LICENSE", "/examples/*", "/casbin/*"]
 readme = "README.md"
 
 [lib]
@@ -14,16 +14,16 @@ name = "axum_casbin_auth"
 path = "src/lib.rs"
 
 [[bin]]
-name="restful"
-path ="./examples/restful_model/main.rs"
+name = "restful"
+path = "./examples/restful_model/main.rs"
 
 [dependencies]
-casbin = { version = "2.0.9", features=["cached"] }
-tokio = { version = "1.20.1", features = [ "full" ] }
+casbin = { version = "2.0.9", features = ["cached"] }
+tokio = { version = "1.20.1", features = ["full"] }
 tower = "0.4.13"
 futures = "0.3"
 http-body = "0.4.5"
-axum = { version = "0.5.15", features = ["headers"]}
+axum = { version = "0.6.6", features = ["headers"] }
 pin-project-lite = "0.2.9"
 serde = "1.0.143"
 serde_json = "1.0.83"
@@ -31,12 +31,12 @@ jsonwebtoken = "8.1.1"
 chrono = "0.4.22"
 
 [dev-dependencies]
-tokio = { version = "1.20.1", features = [ "full" ] }
+tokio = { version = "1.20.1", features = ["full"] }
 
 [profile.release]
 codegen-units = 1
-lto           = true
-opt-level     = 3
+lto = true
+opt-level = 3
 
 [profile.dev]
 split-debuginfo = "unpacked"
