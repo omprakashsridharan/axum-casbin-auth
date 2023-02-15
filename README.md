@@ -14,7 +14,7 @@ Cargo.toml
 ```toml
 [dependencies]
 # Other deps
-axum-casbin-auth = "2.0.0"
+axum-casbin-auth = "*"
 ```
 
 ## Code usage
