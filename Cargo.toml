@@ -18,17 +18,18 @@ name = "restful"
 path = "./examples/restful_model/main.rs"
 
 [dependencies]
-casbin = { version = "2.0.9", features = ["cached"] }
-tokio = { version = "1.20.1", features = ["full"] }
+casbin = { version = "2.0.10", features = ["cached"] }
+tokio = { version = "1.35", features = ["full"] }
 tower = "0.4.13"
 futures = "0.3"
-http-body = "0.4.5"
-axum = { version = "0.6.6", features = ["headers"] }
+http-body = "1.0"
+axum = { version = "0.7" }
+axum-extra = { version = "0.9", features = ["typed-header"] }
 pin-project-lite = "0.2.9"
-serde = "1.0.143"
-serde_json = "1.0.83"
-jsonwebtoken = "8.1.1"
-chrono = "0.4.22"
+serde = "1.0"
+serde_json = "1.0"
+jsonwebtoken = "9.2"
+chrono = "0.4"
 
 [dev-dependencies]
 tokio = { version = "1.20.1", features = ["full"] }

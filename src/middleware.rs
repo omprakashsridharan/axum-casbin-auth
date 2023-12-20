@@ -1,7 +1,7 @@
 use std::{convert::Infallible, sync::Arc};
 
 use axum::{
-    body::{self, boxed, Body, BoxBody},
+    body::Body,
     http::{Request, StatusCode},
     response::Response,
 };
@@ -55,10 +55,8 @@ where
     S: Service<Request<Body>, Response = Response, Error = Infallible> + Clone + Send + 'static,
     S::Future: Send + 'static,
 {
-    type Response = Response<BoxBody>;
-
+    type Response = Response<Body>;
     type Error = Infallible;
-
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn poll_ready(
@@ -68,29 +66,30 @@ where
         self.inner.poll_ready(cx)
     }
 
-    fn call(&mut self, mut request: Request<Body>) -> Self::Future {
+    fn call(&mut self, request: Request<Body>) -> Self::Future {
         let cloned_enforcer = self.enforcer.clone();
         let not_ready_inner = self.inner.clone();
         let mut ready_inner = std::mem::replace(&mut self.inner, not_ready_inner);
+        let path = request.uri().clone().to_string();
+        let method = request.method().clone().to_string();
+        let option_vals = request
+            .extensions()
+            .get::<CasbinAuthClaims>()
+            .map(|x| x.to_owned());
+        println!("{:?}", option_vals);
+        let future = ready_inner.call(request);
+
         Box::pin(async move {
-            let unauthorized_response: Response<BoxBody> = Response::builder()
+            let unauthorized_response: Response<Body> = Response::builder()
                 .status(StatusCode::FORBIDDEN)
-                .body(boxed(Body::empty()))
+                .body(Body::empty())
                 .unwrap();
-            let path = request.uri().clone().to_string();
-            let method = request.method().clone().to_string();
             let mut lock = cloned_enforcer.write().await;
-            let option_vals = request
-                .extensions()
-                .get::<CasbinAuthClaims>()
-                .map(|x| x.to_owned());
             if let Some(vals) = option_vals {
                 match lock.enforce_mut(vec![vals.subject.clone(), path, method]) {
                     Ok(true) => {
                         drop(lock);
-                        request.extensions_mut().insert(vals.subject);
-                        let response: Response<BoxBody> =
-                            ready_inner.call(request).await?.map(body::boxed);
+                        let response: Response<Body> = future.await?;
                         Ok(response)
                     }
                     Ok(false) => {
