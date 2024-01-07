@@ -10,6 +10,7 @@ use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tower::{Layer, Service};
+use url::Url;
 
 #[derive(Clone)]
 pub struct CasbinAuthLayer {
@@ -70,25 +71,27 @@ where
         let cloned_enforcer = self.enforcer.clone();
         let not_ready_inner = self.inner.clone();
         let mut ready_inner = std::mem::replace(&mut self.inner, not_ready_inner);
-        let path = request.uri().clone().to_string();
+        let path = Url::parse(request.uri().clone().to_string().as_str())
+            .expect("invalid URL in CasbinAuthMiddleware")
+            .path()
+            .to_string();
         let method = request.method().clone().to_string();
         let option_vals = request
             .extensions()
             .get::<CasbinAuthClaims>()
             .map(|x| x.to_owned());
-        println!("{:?}", option_vals);
-        let future = ready_inner.call(request);
 
         Box::pin(async move {
             let unauthorized_response: Response<Body> = Response::builder()
                 .status(StatusCode::FORBIDDEN)
                 .body(Body::empty())
                 .unwrap();
-            let mut lock = cloned_enforcer.write().await;
+            let lock = cloned_enforcer.read().await;
             if let Some(vals) = option_vals {
-                match lock.enforce_mut(vec![vals.subject.clone(), path, method]) {
+                match lock.enforce(vec![vals.subject.clone(), path, method]) {
                     Ok(true) => {
                         drop(lock);
+                        let future = ready_inner.call(request);
                         let response: Response<Body> = future.await?;
                         Ok(response)
                     }
