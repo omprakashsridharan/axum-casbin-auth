@@ -1,12 +1,14 @@
-use axum::extract::{FromRequestParts, TypedHeader};
+use axum::extract::FromRequestParts;
 use axum::RequestPartsExt;
 
-use axum::headers::{authorization::Bearer, Authorization};
 use axum::http::request::Parts;
 use axum::http::Extensions;
 use axum::response::IntoResponse;
 use axum::{http::StatusCode, Json};
 use axum_casbin_auth::CasbinAuthClaims;
+use axum_extra::headers::authorization::Bearer;
+use axum_extra::headers::Authorization;
+use axum_extra::typed_header::*;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
