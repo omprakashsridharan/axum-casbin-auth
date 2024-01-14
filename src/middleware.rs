@@ -71,10 +71,10 @@ where
         let cloned_enforcer = self.enforcer.clone();
         let not_ready_inner = self.inner.clone();
         let mut ready_inner = std::mem::replace(&mut self.inner, not_ready_inner);
-        let path = Url::parse(request.uri().clone().to_string().as_str())
-            .expect("invalid URL in CasbinAuthMiddleware")
-            .path()
-            .to_string();
+        let path = match Url::parse(request.uri().clone().to_string().as_str()) {
+            Ok(url) => url.path().to_string(),
+            Err(_) => request.uri().clone().to_string(),
+        };
         let method = request.method().clone().to_string();
         let option_vals = request
             .extensions()
