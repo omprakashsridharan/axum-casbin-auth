@@ -8,7 +8,7 @@ use axum_casbin_auth::{
     casbin::{CoreApi, Enforcer},
     CasbinAuthLayer,
 };
-use std::net::SocketAddr;
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -40,10 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(from_extractor::<Claims>())
         .route("/", get(root));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
     Ok(())
 }
